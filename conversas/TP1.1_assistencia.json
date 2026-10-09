@@ -1,0 +1,197 @@
+{
+  "title": "TP1.1",
+  "messages": [
+    {
+      "role": "user",
+      "content": "para o tp1.1 temos 4 csv para ler, nao queria usar pandas so para isso. da para ir buscar as coisas pelo nome da coluna com o python normal?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim, com `csv.DictReader`, da biblioteca standard. Cada linha fica num dicionário e podes aceder aos campos pelo nome do cabeçalho."
+    },
+    {
+      "role": "user",
+      "content": "e para os paths como e que junto a pasta dos dados com disciplinas.csv sem andar a concatenar strings?"
+    },
+    {
+      "role": "assistant",
+      "content": "Usa `pathlib.Path`: `Path(pasta) / 'disciplinas.csv'`. Se precisares de partir da pasta do próprio ficheiro Python, tens `Path(__file__).resolve().parent`."
+    },
+    {
+      "role": "user",
+      "content": "alguns csv vem do excel e aparece uma cena estranha no primeiro cabecalho, acho que e o BOM. como e que tiro isso ao ler?"
+    },
+    {
+      "role": "assistant",
+      "content": "Se o ficheiro for UTF-8, abre com `encoding='utf-8-sig'`: remove o BOM quando existe. Para CSV, usa também `newline=''`, por exemplo `open(caminho, encoding='utf-8-sig', newline='')`."
+    },
+    {
+      "role": "user",
+      "content": "vamos ter uma bool por colocacao tipo turma, disciplina, dia, inicio e sala. como e que crio isso no CP-SAT?"
+    },
+    {
+      "role": "assistant",
+      "content": "Importa `from ortools.sat.python import cp_model`, cria `model = cp_model.CpModel()` e usa `model.new_bool_var('nome')`. Podes guardar as variáveis num dicionário com a tupla da colocação como chave."
+    },
+    {
+      "role": "user",
+      "content": "posso criar so as colocacoes que respeitam a disponibilidade e o tipo de sala? para nao criar tudo e depois andar a meter vars a 0"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim. Podes filtrar essas combinações antes de criar as variáveis. As colocações excluídas deixam de ser opções do modelo e ficas com menos variáveis."
+    },
+    {
+      "role": "user",
+      "content": "ja tenho as vars agrupadas por turma/periodo, professor/periodo e sala/periodo. para ter no maximo uma em cada grupo posso somar as BoolVars diretamente?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim: `model.add(sum(vars) <= 1)`. Se precisares de exigir uma quantidade exata, usa `model.add(sum(vars) == quantidade)`."
+    },
+    {
+      "role": "user",
+      "content": "para ir metendo vars em `por_professor[chave]` tenho de ver sempre se a chave existe ou ha uma forma mais simples?"
+    },
+    {
+      "role": "assistant",
+      "content": "Podes fazer `por_professor.setdefault(chave, []).append(var)`. Outra opção é criar o dicionário com `collections.defaultdict(list)` e usar diretamente `por_professor[chave].append(var)`."
+    },
+    {
+      "role": "user",
+      "content": "as salas estao como `(nome, numero)`, da para usar isso como chave de dict e meter num set?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim. Uma tupla de strings e inteiros pode ser usada como chave de `dict` ou elemento de `set`, porque esses elementos são hashable."
+    },
+    {
+      "role": "user",
+      "content": "agora a cena dos buracos, tenho uma bool `ocupado` por professor/dia/periodo. quero que `antes` seja o OR dos periodos anteriores, o CP-SAT tem alguma coisa para isso?"
+    },
+    {
+      "role": "assistant",
+      "content": "Para uma lista não vazia de BoolVars, podes usar `model.add_max_equality(antes, lista)`. Como só têm valores 0 e 1, o máximo equivale ao OR. Podes fazer o mesmo para `depois`."
+    },
+    {
+      "role": "user",
+      "content": "para `buraco = antes and depois and not ocupado` estamos a usar inequacoes. posso escrever `1 - ocupado[periodo]` ai?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim, `1 - ocupado[periodo]` é uma expressão linear válida se `ocupado[periodo]` for uma BoolVar."
+    },
+    {
+      "role": "user",
+      "content": "e para minimizar a soma dos buracos qual e a chamada?"
+    },
+    {
+      "role": "assistant",
+      "content": "Com `model.minimize(sum(buracos))`."
+    },
+    {
+      "role": "user",
+      "content": "na parte incremental queria usar H0 como ponto de partida mas sem fixar as aulas. o CP-SAT tem hints?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim: `model.add_hint(var, valor)`. Um hint sugere valores ao solver, mas não fixa as variáveis nem obriga a solução final a mantê-los."
+    },
+    {
+      "role": "user",
+      "content": "entao uso H0 como hint e minimizo as posicoes antigas que deixam de estar ativas. para ver se uma aula antiga ainda tem var em `x` e so `if aula in x`?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim, desde que `x` esteja indexado pela tupla completa da aula e `aula` tenha esse mesmo formato. Se a chave existir, `x[aula]` dá-te a variável correspondente."
+    },
+    {
+      "role": "user",
+      "content": "quero meter limite de 10 segundos, seed fixa e so 1 worker para as medicoes. quais sao os parametros?"
+    },
+    {
+      "role": "assistant",
+      "content": "Depois de criares `solver = cp_model.CpSolver()`, configura:\n\n```python\nsolver.parameters.max_time_in_seconds = 10.0\nsolver.parameters.random_seed = 0\nsolver.parameters.num_search_workers = 1\n```"
+    },
+    {
+      "role": "user",
+      "content": "e os estados? se acabar o tempo sem encontrar nada nao quer dizer que seja impossivel"
+    },
+    {
+      "role": "assistant",
+      "content": "Exato. `cp_model.OPTIMAL` e `cp_model.FEASIBLE` indicam que existe uma solução; `cp_model.INFEASIBLE` indica impossibilidade provada. `cp_model.UNKNOWN` pode surgir quando o limite é atingido sem uma conclusão. Podes usar `solver.status_name(status)` para obter o nome do estado."
+    },
+    {
+      "role": "user",
+      "content": "depois de encontrar solucao vou buscar as aulas escolhidas com `solver.value(var)`?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim. Percorre os pares `(chave, var)` de `x.items()` e guarda as chaves para as quais `solver.value(var)` seja 1. Faz isso quando o estado for `OPTIMAL` ou `FEASIBLE`."
+    },
+    {
+      "role": "user",
+      "content": "quero medir construcao + solve + extracao mas guardar tambem o tempo so do solver. uso o que para medir por fora?"
+    },
+    {
+      "role": "assistant",
+      "content": "`time.perf_counter()`: guardas um valor antes e outro depois e calculas a diferença. Para o tempo reportado pelo próprio solver, tens `solver.wall_time` depois da resolução."
+    },
+    {
+      "role": "user",
+      "content": "e a mediana de 3 execucoes da para fazer sem numpy?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim, `statistics.median(tempos)`."
+    },
+    {
+      "role": "user",
+      "content": "na validacao tenho sets para os conflitos e um dict para acumular a carga por chave. como e que somo sem ter de inicializar cada entrada a 0?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim: `cargas[chave] = cargas.get(chave, 0) + duracao`. O `get` devolve 0 quando a chave ainda não existe."
+    },
+    {
+      "role": "user",
+      "content": "nos testes quero alterar uma copia dos dados mas ha dicts e sets la dentro. `dict.copy()` nao chega pois nao?"
+    },
+    {
+      "role": "assistant",
+      "content": "Certo. `dict.copy()` copia só o dicionário exterior; as estruturas internas continuam partilhadas. Para as modificar de forma independente, usa `copy.deepcopy(dados)`."
+    },
+    {
+      "role": "user",
+      "content": "estamos a passar isto para marimo, qual e a cena do `@app.function` e `@app.class_definition`? qual e a diferenca para definir numa cell normal?"
+    },
+    {
+      "role": "assistant",
+      "content": "São formas que o Marimo usa no ficheiro Python para representar definições reutilizáveis de funções e classes. Para imports e outras definições de setup, podes usar `with app.setup:`. O editor do Marimo gera essa estrutura ao guardar o notebook."
+    },
+    {
+      "role": "user",
+      "content": "para as tabelas do relatorio da para montar o markdown com `join`? nao queria meter pandas so para isso"
+    },
+    {
+      "role": "assistant",
+      "content": "Sim. Para tabelas pequenas, podes gerar as linhas de Markdown com `join`, incluindo o cabeçalho e a linha de separação."
+    },
+    {
+      "role": "user",
+      "content": "falta guardar o valor do objetivo e o lower bound, quais sao as propriedades?"
+    },
+    {
+      "role": "assistant",
+      "content": "Tens `solver.objective_value` e `solver.best_objective_bound`. Interpreta o valor do objetivo apenas quando tiver sido encontrada uma solução."
+    },
+    {
+      "role": "user",
+      "content": "ok falta comparar H0 com H1 e fazer os cenarios de teste, com a validacao fora do solver tambem"
+    },
+    {
+      "role": "assistant",
+      "content": "Ao comparar os resultados, guarda também o estado do solver, para distinguir uma solução encontrada de uma solução cuja optimalidade ficou provada."
+    }
+  ]
+}

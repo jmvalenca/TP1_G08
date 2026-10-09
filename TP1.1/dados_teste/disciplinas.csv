@@ -1,0 +1,8 @@
+disciplina,professor,carga_semanal,duplo_periodo,sala_especial
+Cálculo de Programas,Docente A,4,nao,
+Computabilidade e Complexidade,Docente B,4,nao,
+Processamento de Linguagens e Compiladores,Docente C,3,nao,Laboratório de Informática
+Teoria de Números Computacional,Docente D,2,nao,
+Aprendizagem Estatística CC,Docente D,2,nao,
+Lógica Computacional,Docente E,2,sim,Laboratório de Lógica
+Programação Concorrente,Docente F,1,nao,
